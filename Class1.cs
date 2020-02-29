@@ -8,15 +8,20 @@ using System.Threading.Tasks;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
+using MathNet.Numerics.LinearAlgebra.Double.MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Factorization;
+using MathNet.Numerics.LinearAlgebra.Double.Factorization;
 
 namespace TestGeneralRoboticsToolboxNET
 {
     public class GeneralRoboticsToolbox
     {
+        static VectorBuilder<double> v_builder = BuilderInstance<double>.Vector;
+        static MatrixBuilder<double> m_builder = BuilderInstance<double>.Matrix;
         public GeneralRoboticsToolbox() { }
         public static Matrix<double> Hat(Vector<double> k)
         {
-            Matrix<double> khat = Matrix<double>.Build.Dense(3, 3);
+            Matrix<double> khat = m_builder.Dense(3, 3);
             khat[0, 1] = -k[2];
             khat[0, 2] = k[1];
             khat[1, 0] = k[2];
@@ -29,51 +34,51 @@ namespace TestGeneralRoboticsToolboxNET
         public static Vector<double> Invhat(Matrix<double> khat)
         {
             double[] inv = { (-khat[1, 2] + khat[2, 1]), (khat[0, 2] - khat[2, 0]), (-khat[0, 1] + khat[1, 0]) };
-            Vector<double> output = Vector<double>.Build.DenseOfArray(inv);
+            Vector<double> output = v_builder.DenseOfArray(inv);
+            output /= 2;
             return output;
         }
         public static Matrix<double> Rot(Vector<double> k, double theta)
         {
-            Matrix<double> I = Matrix<double>.Build.DenseIdentity(3);
+            Matrix<double> I = m_builder.DenseIdentity(3);
             Matrix<double> khat = Hat(k);
             Matrix<double> khat2 = khat.Multiply(khat);
-            return I + Math.Sin(theta) * khat + (1.0 - Math.Cos(theta)) * khat2;
+            return (I + Math.Sin(theta) * khat + (1.0 - Math.Cos(theta)) * khat2);
         }
         public static Tuple<Vector<double>, double> R2rot(Matrix<double> R)
         {
             Matrix<double> R1 = R - R.Transpose();
-            double sin_theta = R1.L2Norm() / Math.Sqrt(8);
+            //double sin_theta = R1.L2Norm() / Math.Sqrt(8);
+            double sin_theta = R1.L2Norm() / 2.0;
             double cos_theta = (R.Trace() - 1.0) / 2.0;
             double theta = Math.Atan2(sin_theta, cos_theta);
             Vector<double> k;
-            if (sin_theta < (1 * 10 ^ -6))
+            if (sin_theta < (1e-6))
             {
                 if (cos_theta > 0)
                 {
-                    k = Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 1.0 });
+                    k = v_builder.DenseOfArray(new[] { 0.0, 0.0, 1.0 });
 
                     return new Tuple<Vector<double>, double>(k, 0);
                 }
                 else
                 {
-                    Matrix<Double> eye = Matrix<Double>.Build.DenseIdentity(3);
+                    Matrix<double> eye = m_builder.DenseIdentity(3);
                     Matrix<double> B = (1.0 / 2.0) * (R + eye);
-                    k = Vector<double>.Build.DenseOfArray(new[] { Math.Sqrt(B[0, 0]), Math.Sqrt(B[1, 1]), Math.Sqrt(B[2, 2]) });
-                    if (Math.Abs(k[0]) > (1 * 10 ^ -6))
+                    k = v_builder.DenseOfArray(new[] { Math.Sqrt(B[0, 0]), Math.Sqrt(B[1, 1]), Math.Sqrt(B[2, 2]) });
+                    if (Math.Abs(k[0]) > 1e-6)
                     {
                         k[1] = k[1] * Math.Sign(B[0, 1] / k[0]);
                         k[2] = k[2] * Math.Sign(B[0, 2] / k[0]);
                     }
-                    else if (Math.Abs(k[1]) > (1 * 10 ^ -6))
+                    else if (Math.Abs(k[1]) > 1e-6)
                     {
                         k[2] = k[2] * Math.Sign(B[0, 2] / k[1]);
                     }
                     return new Tuple<Vector<double>, double>(k, Math.PI);
-
                 }
-
             }
-            k = Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 0.0 });
+            k = v_builder.DenseOfArray(new[] { 0.0, 0.0, 0.0 });
             Vector<double> inv = Invhat(R1);
             for (int i = 0; i < k.Count; i++)
             {
@@ -84,7 +89,7 @@ namespace TestGeneralRoboticsToolboxNET
         }
         public static Matrix<double> Screw_matrix(Vector<double> r)
         {
-            Matrix<double> I = Matrix<double>.Build.DenseIdentity(6);
+            Matrix<double> I = m_builder.DenseIdentity(6);
             Matrix<double> hat = Hat(r);
             for (int i = 0; i < 3; i++)
             {
@@ -97,7 +102,7 @@ namespace TestGeneralRoboticsToolboxNET
         }
         public static Matrix<double> Q2R(Vector<double> q)
         {
-            Matrix<double> I = Matrix<double>.Build.DenseIdentity(3);
+            Matrix<double> I = m_builder.DenseIdentity(3);
 
             Matrix<double> hat = Hat(q.SubVector(1, 3));
             
@@ -113,7 +118,7 @@ namespace TestGeneralRoboticsToolboxNET
             {
                 double S = 2 * Math.Sqrt(tr + 1);
 
-                q = Vector<double>.Build.DenseOfArray(new[] {(0.25 * S),
+                q = v_builder.DenseOfArray(new[] {(0.25 * S),
                       ((R[2, 1] - R[1, 2]) / S),
                       ((R[0, 2] - R[2, 0]) / S),
                       ((R[1, 0] - R[0, 1]) / S)});
@@ -122,7 +127,7 @@ namespace TestGeneralRoboticsToolboxNET
             else if (R[0, 0] > R[1, 1] && R[0, 0] > R[2, 2])
             {
                 double S = 2 * Math.Sqrt(1 + R[0, 0] - R[1, 1] - R[2, 2]);
-                q = Vector<double>.Build.DenseOfArray(new[] {((R[2, 1] - R[1, 2]) / S),
+                q = v_builder.DenseOfArray(new[] {((R[2, 1] - R[1, 2]) / S),
                       (0.25 * S),
                       ((R[0, 1] + R[1, 0]) / S),
                       ((R[0, 2] + R[2, 0]) / S)});
@@ -130,7 +135,7 @@ namespace TestGeneralRoboticsToolboxNET
             else if (R[1, 1] > R[2, 2])
             {
                 double S = 2 * Math.Sqrt(1 - R[0, 0] + R[1, 1] - R[2, 2]);
-                q = Vector<double>.Build.DenseOfArray(new[] {((R[0, 2] - R[2, 0]) / S),
+                q = v_builder.DenseOfArray(new[] {((R[0, 2] - R[2, 0]) / S),
                       ((R[0, 1] + R[1, 0]) / S),
                       (0.25 * S),
                       ((R[1, 2] + R[2, 1]) / S) });
@@ -139,7 +144,7 @@ namespace TestGeneralRoboticsToolboxNET
             else
             {
                 double S = 2 * Math.Sqrt(1 - R[0, 0] - R[1, 1] + R[2, 2]);
-                q = Vector<double>.Build.DenseOfArray(new[] {((R[1, 0] - R[0, 1]) / S),
+                q = v_builder.DenseOfArray(new[] {((R[1, 0] - R[0, 1]) / S),
                       ((R[0, 2] + R[2, 0]) / S),
                       ((R[1, 2] + R[2, 1]) / S),
                       (0.25 * S) });
@@ -151,14 +156,14 @@ namespace TestGeneralRoboticsToolboxNET
         {
             double theta = 2 * Math.Acos(q[0]);
             Vector<double> k;
-            if (Math.Abs(theta) < (1 * 10 ^ -6))
+            if (Math.Abs(theta) < (Math.Pow(10,-6)))
             {
-                k = Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 1.0 });
+                k = v_builder.DenseOfArray(new[] { 0.0, 0.0, 1.0 });
 
                 return new Tuple<Vector<double>, double>(k, 0);
             }
-            k = Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 1.0 });
-            for (int i = 1; i > 4; i++)
+            k = v_builder.DenseOfArray(new[] { 0.0, 0.0, 1.0 });
+            for (int i = 1; i < k.Count + 1; i++)
             {
                 k[i - 1] = q[i] / Math.Sin(theta / 2.0);
             }
@@ -166,19 +171,18 @@ namespace TestGeneralRoboticsToolboxNET
         }
         public static Vector<double> Rot2Q(double[] k, double theta)
         {
-            
-            Vector<double> output = Vector<double>.Build.DenseOfArray(new[] { Math.Cos(theta/2.0), k[0]*Math.Sin(theta/2.0), k[1] * Math.Sin(theta / 2.0), k[2] * Math.Sin(theta / 2.0) });
+            Vector<double> output = v_builder.DenseOfArray(new[] { Math.Cos(theta/2.0), k[0]*Math.Sin(theta/2.0), k[1] * Math.Sin(theta / 2.0), k[2] * Math.Sin(theta / 2.0) });
             return output;
         }
         public static Vector<double> Quatcomplement(Vector<double> q)
         {
-            Vector<double> output = Vector<double>.Build.DenseOfArray(new[] { q[0], -1 * q[1], -1 * q[2], -1 * q[3] });
+            Vector<double> output = v_builder.DenseOfArray(new[] { q[0], -1 * q[1], -1 * q[2], -1 * q[3] });
             return output;
         }
         public static Matrix<double> Quatproduct(Vector<double> q)
         {
-            Matrix<double> I = Matrix<double>.Build.DenseIdentity(3);
-            Matrix<double> Q = Matrix<double>.Build.Dense(4, 4);
+            Matrix<double> I = m_builder.DenseIdentity(3);
+            Matrix<double> Q = m_builder.Dense(4, 4);
             Matrix<double> hats = Hat(q.SubVector(1, 3));
             Q[0, 0] = q[0];
 
@@ -202,8 +206,8 @@ namespace TestGeneralRoboticsToolboxNET
         }
         public static Matrix<double> Quatjacobian(Vector<double> q)
         {
-            Matrix<double> I = Matrix<double>.Build.DenseIdentity(3);
-            Matrix<double> J = Matrix<double>.Build.Dense(4, 3);
+            Matrix<double> I = m_builder.DenseIdentity(3);
+            Matrix<double> J = m_builder.Dense(4, 3);
             Matrix<double> hats = Hat(q.SubVector(1, 3));
             for (int i = 0; i < 3; i++)
             {
@@ -222,9 +226,9 @@ namespace TestGeneralRoboticsToolboxNET
         public static Matrix<double> Rpy2R(Vector<double> rpy)
         {
             Vector<double> k;
-            Matrix<double> rotation1 = Rot(k = Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 1.0 }), rpy[2]);
-            Matrix<double> rotation2 = Rot(k = Vector<double>.Build.DenseOfArray(new[] { 0.0, 1.0, 0.0 }), rpy[1]);
-            Matrix<double> rotation3 = Rot(k = Vector<double>.Build.DenseOfArray(new[] { 1.0, 0.0, 0.0 }), rpy[0]);
+            Matrix<double> rotation1 = Rot(k = v_builder.DenseOfArray(new[] { 0.0, 0.0, 1.0 }), rpy[2]);
+            Matrix<double> rotation2 = Rot(k = v_builder.DenseOfArray(new[] { 0.0, 1.0, 0.0 }), rpy[1]);
+            Matrix<double> rotation3 = Rot(k = v_builder.DenseOfArray(new[] { 1.0, 0.0, 0.0 }), rpy[0]);
             return rotation1.Multiply(rotation2).Multiply(rotation3);
         }
         public static Vector<double> R2Rpy(Matrix<double> R)
@@ -233,10 +237,10 @@ namespace TestGeneralRoboticsToolboxNET
             Vector<double> output;
             double r = Math.Atan2(R[2, 1], R[2, 2]);
             double y = Math.Atan2(R[1, 0], R[0, 0]);
-            Console.WriteLine(R);
+            
             double normie = (R.SubMatrix(2, 1, 1, 2)).L2Norm();
-            double p = Math.Atan2(R[2, 0], normie);
-            return output = Vector<double>.Build.DenseOfArray(new[] { r, p, y });
+            double p = Math.Atan2(-R[2, 0], normie);
+            return output = v_builder.DenseOfArray(new[] { r, p, y });
         }
 
         public static Transform Fwdkin(Robot robot, double[] theta)
@@ -251,7 +255,7 @@ namespace TestGeneralRoboticsToolboxNET
             }
             Vector<double> p;
             p = robot.P.Column(0);
-            Matrix<double> R = Matrix<double>.Build.DenseIdentity(3);
+            Matrix<double> R = m_builder.DenseIdentity(3);
             for(int i = 0; i < robot.Joint_type.Length; i++)
             {
                 if(robot.Joint_type[i]==0 || robot.Joint_type[i] == 2)
@@ -292,11 +296,11 @@ namespace TestGeneralRoboticsToolboxNET
                 }
             }
 
-            Matrix<double> hi = Matrix<double>.Build.Dense(robot.H.RowCount, robot.H.ColumnCount);
-            Matrix<double> p0i = Matrix<double>.Build.Dense(robot.P.RowCount, robot.P.ColumnCount);
+            Matrix<double> hi = m_builder.Dense(robot.H.RowCount, robot.H.ColumnCount);
+            Matrix<double> p0i = m_builder.Dense(robot.P.RowCount, robot.P.ColumnCount);
             Vector<double> p;
             p = robot.P.Column(0);
-            Matrix<double> R = Matrix<double>.Build.DenseIdentity(3);
+            Matrix<double> R = m_builder.DenseIdentity(3);
 
             p0i.SetColumn(0,p);
             
@@ -324,7 +328,7 @@ namespace TestGeneralRoboticsToolboxNET
             {
                 p0T = p0T + R * robot.P_tool;
             }
-            Matrix<double> J= Matrix<double>.Build.Dense(6, robot.Joint_type.Length);
+            Matrix<double> J= m_builder.Dense(6, robot.Joint_type.Length);
             int i = 0;
             int j = 0;
             while (i < robot.Joint_type.Length)
@@ -361,7 +365,7 @@ namespace TestGeneralRoboticsToolboxNET
                 string message = "Vectors must have a length of 3.";
                 throw new Exception(message);
             }
-            Vector<double> result =  Vector<double>.Build.Dense(3);
+            Vector<double> result =  v_builder.Dense(3);
             result[0] = left[1] * right[2] - left[2] * right[1];
             result[1] = -left[0] * right[2] + left[2] * right[0];
             result[2] = left[0] * right[1] - left[1] * right[0];
@@ -392,7 +396,7 @@ namespace TestGeneralRoboticsToolboxNET
             Vector<double> eqp = qp / qp.L2Norm();
 
             double theta = Subproblem0(epp, eqp, k);
-            if (Math.Abs(p.L2Norm() - q.L2Norm()) > (p.L2Norm() * (1 * 10 ^ -2))) Console.WriteLine("WARNING:||p|| and ||q|| must be the same!!!");
+            if (Math.Abs(p.L2Norm() - q.L2Norm()) > (p.L2Norm() * (Math.Pow(10,-8)))) Console.WriteLine("WARNING:||p|| and ||q|| must be the same!!!");
             
             return theta;
         }
@@ -407,12 +411,12 @@ namespace TestGeneralRoboticsToolboxNET
                 Console.WriteLine("WARNING:No solution found k1 != k2");
                 return new double[0];
             }
-            Matrix<double> amatrix = Matrix<double>.Build.Dense(2, 2);
+            Matrix<double> amatrix = m_builder.Dense(2, 2);
             amatrix[0, 0] = k12;
             amatrix[0, 1] = -1;
             amatrix[1, 0] = -1;
             amatrix[1, 1] = k12;
-            Vector<double> avector = Vector<double>.Build.DenseOfArray(new[] { pk, qk });
+            Vector<double> avector = v_builder.DenseOfArray(new[] { pk, qk });
             Vector<double> a = amatrix.Multiply(avector / (Math.Pow(k12, 2) - 1));
             double bb = p.DotProduct(p) - a.DotProduct(a) - 2 * a[0] * a[1] * k12;
             if (Math.Abs(bb) < min) bb = 0;
@@ -424,9 +428,9 @@ namespace TestGeneralRoboticsToolboxNET
             double gamma = Math.Sqrt(bb) / Cross(k1, k2).L2Norm();
             if (Math.Abs(gamma) < min)
             {
-                Matrix<double> cmalt = Matrix<double>.Build.DenseOfRowVectors(k1, k2, Cross(k1, k2));
+                Matrix<double> cmalt = m_builder.DenseOfRowVectors(k1, k2, Cross(k1, k2));
                 cmalt = cmalt.Transpose();
-                Vector<double> c1vecalt = Vector<double>.Build.Dense(3);
+                Vector<double> c1vecalt = v_builder.Dense(3);
                 c1vecalt[0] = a[0];
                 c1vecalt[1] = a[1];
                 c1vecalt[2] = gamma;
@@ -439,13 +443,13 @@ namespace TestGeneralRoboticsToolboxNET
                 
                 return thetasfirst;
             }
-            Matrix<double> cm = Matrix<double>.Build.DenseOfRowVectors(k1, k2, Cross(k1, k2));
+            Matrix<double> cm = m_builder.DenseOfRowVectors(k1, k2, Cross(k1, k2));
             cm = cm.Transpose();
-            Vector<double> c1vec = Vector<double>.Build.Dense(3);
+            Vector<double> c1vec = v_builder.Dense(3);
             c1vec[0] = a[0];
             c1vec[1] = a[1];
             c1vec[2] = gamma;
-            Vector<double> c2vec = Vector<double>.Build.Dense(3);
+            Vector<double> c2vec = v_builder.Dense(3);
             c2vec[0] = a[0];
             c2vec[1] = a[1];
             c2vec[2] = -gamma;
@@ -474,7 +478,7 @@ namespace TestGeneralRoboticsToolboxNET
             }
             double theta = Subproblem1(pp / pp.L2Norm(), qp / qp.L2Norm(), k);
             double phi = Math.Acos(bb);
-            Console.WriteLine("theta, phi {0}, {1}", theta, phi);
+            //Console.WriteLine("theta, phi {0}, {1}", theta, phi);
             if (Math.Abs(phi) > 0)
             {
                 return new double[2] { theta + phi, theta - phi };
@@ -494,7 +498,7 @@ namespace TestGeneralRoboticsToolboxNET
             double b = -1*hatted.LeftMultiply(hatted.LeftMultiply(q)).DotProduct(p);
             double c = d - (p.DotProduct(q) - b);
             double phi = Math.Atan2(b, a);
-            Vector<double> dprep = Vector<double>.Build.Dense(2);
+            Vector<double> dprep = v_builder.Dense(2);
             dprep[0] = a;
             dprep[1] = b;
             d = c / dprep.L2Norm();
@@ -536,7 +540,7 @@ namespace TestGeneralRoboticsToolboxNET
             IEnumerable<Vector<double>> splicer = h.EnumerateColumns();
             bool AlmostEquals(double val1, double val2)
             {
-                if (Math.Abs(val1 - val2) < (1 * 10 ^ -8)) return true;
+                if (Math.Abs(val1 - val2) < (Math.Pow(10,-8))) return true;
                 return false;
             }
             foreach (Vector<double> column in splicer)
@@ -650,7 +654,7 @@ namespace TestGeneralRoboticsToolboxNET
         {
             bool AlmostEquals(double val1, double val2)
             {
-                if (Math.Abs(val1 - val2) < (1 * 10 ^ -8)) return true;
+                if (Math.Abs(val1 - val2) < (Math.Pow(10,-8))) return true;
                 return false;
             }
             for (int i = 0; i < 3; i++)

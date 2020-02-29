@@ -1,0 +1,17 @@
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\BridgeGeneralRoboticsToolbox.dll
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\BridgeGeneralRoboticsToolbox.pdb
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\Bridge.dll
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\Bridge.Html5.dll
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\Bridge.QUnit.dll
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\MathNetNumerics.dll
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\Bridge.xml
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\Bridge.Html5.xml
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\Bridge.QUnit.xml
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\MathNetNumerics.pdb
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\bin\Debug\Newtonsoft.Json.xml
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\obj\Debug\BridgeGeneralRoboticsToolbox.csprojAssemblyReference.cache
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\obj\Debug\BridgeGeneralRoboticsToolbox.csproj.CoreCompileInputs.cache
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\obj\Debug\BridgeGeneralRoboticsToolbox.csproj.CopyComplete
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\obj\Debug\BridgeGeneralRoboticsToolbox.dll
+C:\Users\Dawson Cohen\robotraconteur\BridgeGeneralRoboticsToolbox\obj\Debug\BridgeGeneralRoboticsToolbox.pdb

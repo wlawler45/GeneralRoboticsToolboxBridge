@@ -11,10 +11,10 @@ namespace BridgeGeneralRoboticsToolbox
     public class App
     {
         public static void Main()
-        {
-            UnitTest1 tests = new UnitTest1();
+        {    
+            //Console.WriteLine("Welcome to Bridge.NET");
             
-            Console.WriteLine("Welcome to Bridge.NET");
+            UnitTest1.RunTests();
 
             // After building (Ctrl + Shift + B) this project, 
             // browse to the /bin/Debug or /bin/Release folder.

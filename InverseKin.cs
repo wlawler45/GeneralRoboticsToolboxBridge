@@ -5,11 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double.MathNet.Numerics.LinearAlgebra;
 
 namespace TestGeneralRoboticsToolboxNET
 {
     public class NormalizeJoints
     {
+        static VectorBuilder<double> v_builder = BuilderInstance<double>.Vector;
+        static MatrixBuilder<double> m_builder = BuilderInstance<double>.Matrix;
         public NormalizeJoints() { }
 
         public Robot Robot { get; set; }
@@ -42,7 +45,7 @@ namespace TestGeneralRoboticsToolboxNET
 
                 if (!(l < theta && theta < u))
                 {
-                    Vector<double> a = Vector<double>.Build.DenseOfArray(new[] { -1.0, 1.0 });
+                    Vector<double> a = v_builder.DenseOfArray(new[] { -1.0, 1.0 });
                     a = a * 2 * Math.PI;
                     Vector<double> b = a.Add(theta);
                     int index = -1;
@@ -84,7 +87,7 @@ namespace TestGeneralRoboticsToolboxNET
                     {
                         double theta_vs = theta + 2 * Math.PI;
 
-                        Vector<double> theta_v = Vector<double>.Build.Dense(Math.Abs(n_diff));
+                        Vector<double> theta_v = v_builder.Dense(Math.Abs(n_diff));
                         for (int i = 0; i < theta_v.Count; i++)
                         {
                             if (n_diff > 0)
@@ -135,8 +138,8 @@ namespace TestGeneralRoboticsToolboxNET
                 }
                 return output;
             }
-            // theta_last = Vector<double>.Build.Dense(joint_index.Length);
-            Vector<double> theta_normed_vec = Vector<double>.Build.DenseOfArray(theta_normed.ToArray());
+            // theta_last = v_builder.Dense(joint_index.Length);
+            Vector<double> theta_normed_vec = v_builder.DenseOfArray(theta_normed.ToArray());
 
             double theta_last = Last_joints[joint_index];
 
@@ -195,7 +198,7 @@ namespace TestGeneralRoboticsToolboxNET
                 double[][] output = theta_normed.Select(a => a.ToArray()).ToArray();
                 return output;
             }
-            Vector<double> theta_last = Vector<double>.Build.Dense(joint_index.Length);
+            Vector<double> theta_last = v_builder.Dense(joint_index.Length);
 
             for (int i = 0; i < joint_index.Length; i++)
             {
@@ -209,7 +212,7 @@ namespace TestGeneralRoboticsToolboxNET
             for (int i = 0; i < joint_index.Length; i++)
             {
 
-                Vector<double> theta_normed_vec = Vector<double>.Build.DenseOfArray(theta_normed[i].ToArray());
+                Vector<double> theta_normed_vec = v_builder.DenseOfArray(theta_normed[i].ToArray());
                 Vector<double> theta_dist_vec = theta_normed_vec.Subtract(theta_last[i]);
                 theta_dist_arr[i] = theta_dist_vec.L2Norm();
 
@@ -263,8 +266,9 @@ namespace TestGeneralRoboticsToolboxNET
     }
     public class InverseKin
     {
+        static VectorBuilder<double> v_builder = BuilderInstance<double>.Vector;
+        static MatrixBuilder<double> m_builder = BuilderInstance<double>.Matrix;
 
-    
         public static double[][] robot6_sphericalwrist_invkin(Robot robot, Transform desired_pose, double[] last_joints = default(double[]))
         {
 
@@ -277,10 +281,10 @@ namespace TestGeneralRoboticsToolboxNET
             Matrix<double> H = robot.H.Clone();
             Matrix<double> P= robot.P.Clone();
             List<double[]> theta_v = new List<double[]>();
-            Vector<double> zeros = Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 0.0 });
-            Vector<double> ex = Vector<double>.Build.DenseOfArray(new[] { 1.0, 0.0, 0.0 });
-            Vector<double> ey = Vector<double>.Build.DenseOfArray(new[] { 0.0, 1.0, 0.0 });
-            Vector<double> ez = Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 1.0 });
+            Vector<double> zeros = v_builder.DenseOfArray(new[] { 0.0, 0.0, 0.0 });
+            Vector<double> ex = v_builder.DenseOfArray(new[] { 1.0, 0.0, 0.0 });
+            Vector<double> ey = v_builder.DenseOfArray(new[] { 0.0, 1.0, 0.0 });
+            Vector<double> ez = v_builder.DenseOfArray(new[] { 0.0, 0.0, 1.0 });
             if (!P.Column(4).Equals(zeros))
             {
                 double P4_d = P.Column(4) * H.Column(3);
@@ -360,7 +364,7 @@ namespace TestGeneralRoboticsToolboxNET
                 for (int i = 0; i < theta_v.Count; i++)
                 {
 
-                    Vector<double> theta_v_vec = Vector<double>.Build.DenseOfArray(theta_v[i]);
+                    Vector<double> theta_v_vec = v_builder.DenseOfArray(theta_v[i]);
                     Vector<double> theta_dist_vec = theta_v_vec.Subtract(last_joints[i]);
                     theta_dist_arr[i] = theta_dist_vec.L2Norm();
                 }
