@@ -15,6 +15,8 @@ namespace GeneralRoboticsToolboxTests
     [FileName("../samples/qunit/output/test.html")]
     public class UnitTest1
     {
+        static double in_2_m = 0.0254;
+
         static VectorBuilder<double> v_builder = BuilderInstance<double>.Vector;
         static MatrixBuilder<double> m_builder = BuilderInstance<double>.Matrix;
         public static bool AlmostEquals(double val1, double val2, double accuracy = 1e-8)
@@ -312,6 +314,7 @@ namespace GeneralRoboticsToolboxTests
             // NOTE: Does not raise exception
             Vector<double> rpy3 = v_builder.DenseOfArray(new[] { 10 * Math.PI / 180, 90 * Math.PI / 180, -30 * Math.PI / 180 });
             Matrix<double> R3 = GeneralRoboticsToolbox.Rpy2R(rpy3);
+            Console.WriteLine(GeneralRoboticsToolbox.R2Rpy(R3).ToString());
 
             Console.WriteLine("Rpy2R succeeded");
         }
@@ -391,21 +394,134 @@ namespace GeneralRoboticsToolboxTests
             Console.WriteLine("Subproblem4 succeeded");
         }
 
+        static Robot puma260b_robot()
+        {
+            // Returns an approximate Robot instance for a Puma 260B robot
+
+
+            Vector<double> x = v_builder.DenseOfArray(new[] { 1.0, 0, 0 });
+            Vector<double> y = v_builder.DenseOfArray(new[] { 0, 1.0, 0 });
+            Vector<double> z = v_builder.DenseOfArray(new[] { 0, 0, 1.0 });
+            Vector<double> a = v_builder.DenseOfArray(new[] { 0.0, 0, 0 });
+
+            Matrix<double> H = m_builder.DenseOfColumnVectors(z, y, y, z, y, x);
+            Matrix<double> P = 0.0254 * m_builder.DenseOfColumnVectors(13 * z, a, (-4.9 * y + 7.8 * x - 0.75 * z), -8.0 * z, a, a, 2.2 * x);
+            int[] joint_type = new[] { 0, 0, 0, 0, 0, 0 };
+            double[] joint_min = new[] { -5.0, -256, -214, -384, -32, -267 };
+            double[] joint_max = new[] { 313.0, 76, 34, 194, 212, 267 };
+            for (int i = 0; i < joint_min.Length; i++)
+            {
+                joint_min[i] = joint_min[i] * Math.PI / 180.0;
+                joint_max[i] = joint_max[i] * Math.PI / 180.0;
+            }
+            return new Robot(H, P, joint_type, joint_min, joint_max);
+        }
+
+        static Robot abb_irb6640_180_255_robot()
+        {
+            // Returns an approximate Robot instance for a Puma 260B robot
+
+
+            Vector<double> x = v_builder.DenseOfArray(new[] { 1.0, 0, 0 });
+            Vector<double> y = v_builder.DenseOfArray(new[] { 0, 1.0, 0 });
+            Vector<double> z = v_builder.DenseOfArray(new[] { 0, 0, 1.0 });
+            Vector<double> a = v_builder.DenseOfArray(new[] { 0.0, 0, 0 });
+
+            Matrix<double> H = m_builder.DenseOfColumnVectors(z, y, y, x, y, x);
+            Matrix<double> P = m_builder.DenseOfColumnVectors(0.78 * z, 0.32 * x, 1.075 * z, 0.2 * z, 1.142 * x, 0.2 * x, a);
+            int[] joint_type = new[] { 0, 0, 0, 0, 0, 0 };
+            double[] joint_min = new[] { -170.0, -65, -180, -300, -120, -360 };
+            double[] joint_max = new[] { 170.0, 85, 70, 300, 120, 360 };
+            for (int i = 0; i < joint_min.Length; i++)
+            {
+                joint_min[i] = joint_min[i] * Math.PI / 180.0;
+                joint_max[i] = joint_max[i] * Math.PI / 180.0;
+            }
+            return new Robot(H, P, joint_type, joint_min, joint_max);
+        }
+
+        static Robot puma260b_robot_tool()
+        {
+            Robot robot = puma260b_robot();
+            robot.R_tool = GeneralRoboticsToolbox.Rot(v_builder.DenseOfArray(new[] { 0, 1.0, 0 }), Math.PI / 2.0);
+            robot.P_tool = v_builder.DenseOfArray(new[] { 0.05, 0, 0 });
+            return robot;
+        }
+
+        static void TestFwdkin()
+        {
+            Robot puma = puma260b_robot();
+
+            Transform pose = GeneralRoboticsToolbox.Fwdkin(puma, new[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 });
+            if(!AlmostEqualsMatrix(pose.R, m_builder.DenseIdentity(3), 1e-8))
+            { Console.WriteLine("FwdKin failed"); return; }
+            if (!AlmostEqualsVector(pose.P, v_builder.DenseOfArray(new[] { 10.0 * in_2_m, -4.9 * in_2_m, 4.25 * in_2_m }), 1e-6))
+            { Console.WriteLine("FwdKin failed"); return; }
+
+            // Another right-angle configuration
+            double[] joints2 = new[] { 180.0, -90, -90, 90, 90, 90 };
+            for (int i = 0; i < joints2.Length; i++)
+            {
+                joints2[i] = joints2[i] * Math.PI / 180.0;
+            }
+            Transform pose2 = GeneralRoboticsToolbox.Fwdkin(puma, joints2);
+            Matrix<double> rot2 = GeneralRoboticsToolbox.Rot(v_builder.DenseOfArray(new[] { 0, 0, 1.0 }), Math.PI).Multiply(GeneralRoboticsToolbox.Rot(v_builder.DenseOfArray(new[] { 0, 1.0, 0 }), -Math.PI / 2));
+            if(!AlmostEqualsMatrix(pose2.R, rot2, 1e-6)) { Console.WriteLine("FwdKin failed"); return; }
+            if (!AlmostEqualsVector(pose2.P, v_builder.DenseOfArray(new[] { -0.75, 4.9, 31 }) * 0.0254, 1e-6))
+            { Console.WriteLine("FwdKin failed"); return; }
+
+            //Random configuration
+            double[] joints3 = new[] { 50.0, -105, 31, 4, 126, -184 };
+            for (int i = 0; i < joints3.Length; i++)
+            {
+                joints3[i] = joints3[i] * Math.PI / 180.0;
+            }
+            Transform pose3 = GeneralRoboticsToolbox.Fwdkin(puma, joints3);
+            Matrix<double> pose3_R_t = m_builder.DenseOfRowArrays(
+                new[] { 0.4274, 0.8069, -0.4076 },
+                new[] { 0.4455, -0.5804, -0.6817 },
+                new[] { -0.7866, 0.1097, -0.6076 });
+
+            Vector<double> pose3_P_t = v_builder.DenseOfArray(new[] { 0.2236, 0.0693, 0.4265 });
+            if (!AlmostEqualsMatrix(pose3.R, pose3_R_t, 1e-4)) { Console.WriteLine("FwdKin failed"); return; }
+            if(!AlmostEqualsVector(pose3.P, pose3_P_t, 1e-4)) { Console.WriteLine("FwdKin failed"); return; }
+
+            Robot puma_tool = puma260b_robot_tool();
+
+            Transform pose4 = GeneralRoboticsToolbox.Fwdkin(puma_tool, joints3);
+            Matrix<double> pose4_R_t = m_builder.DenseOfRowArrays(
+                new[] { 0.4076, 0.8069, 0.4274 },
+                new[] { 0.681654, -0.580357, 0.44557 },
+                new[] { 0.60759, 0.1097, -0.7866 });
+            Console.WriteLine("Robot R tool={0}", pose4.R);
+            Console.WriteLine("Robot R calculated tool={0}", pose4_R_t);
+            Console.WriteLine("Robot p tool={0}", pose4.P);
+
+            Vector<double> pose4_P_t = v_builder.DenseOfArray(new[] { 0.2450, 0.0916, 0.3872 });
+            Console.WriteLine("Robot p calculated tool={0}", pose4_P_t);
+            if(!AlmostEqualsMatrix(pose4.R, pose4_R_t, 1 * 10 ^ 4))
+            { Console.WriteLine("FwdKin failed"); return; }
+            if (!AlmostEqualsVector(pose4.P, pose4_P_t, 1 * 10 ^ 4))
+            { Console.WriteLine("FwdKin failed"); return; }
+            Console.WriteLine("FwdKin succeeded");
+        }
+
         public static void RunTests()
         {
-            //TestHat();
-            //TestRot();
-            //TestR2Rot();
-            //TestScrewMatrix();
-            //TestR2Q();
-            //TestQ2R();
-            //TestRot2Q();
-            //TestQ2Rot();
-            //TestQuatcomplement();
-            //TestQuatproduct();
-            //TestQuatjacobian();
+            TestHat();
+            TestRot();
+            TestR2Rot();
+            TestScrewMatrix();
+            TestR2Q();
+            TestQ2R();
+            TestRot2Q();
+            TestQ2Rot();
+            TestQuatcomplement();
+            TestQuatproduct();
+            TestQuatjacobian();
             TestRpy2R();
             Test_Subproblems();
+            TestFwdkin();
         }
     }
 }
